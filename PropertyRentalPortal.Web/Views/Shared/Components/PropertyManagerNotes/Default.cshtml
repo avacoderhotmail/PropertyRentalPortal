@@ -1,0 +1,66 @@
+@using PropertyRentalPortal.Web.ViewComponents
+@model PropertyManagerNotesViewModel
+
+<div class="card shadow-sm border-0 border-start border-warning border-4 mb-4">
+    <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-shield-lock-fill text-warning fs-5 me-2"></i>
+            <div>
+                <h5 class="card-title mb-0 fw-bold">Internal Property Manager Notes</h5>
+                <small class="text-muted">Confidential: Visible & editable only to management staff</small>
+            </div>
+        </div>
+        <span class="badge bg-warning text-dark">Staff Only</span>
+    </div>
+    <div class="card-body p-4">
+        <!-- Add Note Form -->
+        <form asp-controller="Applications" asp-action="AddNote" method="post" class="mb-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="RentalApplicationId" value="@Model.ApplicationId" />
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-secondary">Add Internal Staff Note</label>
+                <textarea name="Content" rows="3" class="form-control" placeholder="Enter background check findings, landlord reference notes, or internal remarks..." required></textarea>
+            </div>
+            <div class="text-end">
+                <button type="submit" class="btn btn-warning btn-sm px-3 fw-semibold">
+                    <i class="bi bi-plus-circle me-1"></i>Save Note
+                </button>
+            </div>
+        </form>
+
+        <hr />
+
+        <!-- Notes List -->
+        @if (!Model.Notes.Any())
+        {
+            <div class="text-muted fst-italic text-center py-3">No management notes logged for this application yet.</div>
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var note in Model.Notes)
+                {
+                    <div class="list-group-item px-0 py-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="fw-bold text-dark me-2">@note.AuthorName</span>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>@note.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
+                                </small>
+                            </div>
+                            <form asp-controller="Applications" asp-action="DeleteNote" method="post" onsubmit="return confirm('Delete this note?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="noteId" value="@note.Id" />
+                                <input type="hidden" name="applicationId" value="@Model.ApplicationId" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm border-0 py-0 px-2" title="Delete note">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                        <p class="mt-2 mb-0 text-dark">@note.Content</p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,80 @@
+@using PropertyRentalPortal.Web.Models
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Create Account";
+}
+
+<div class="row justify-content-center py-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow border-0">
+            <div class="card-header bg-white py-3 text-center border-bottom-0">
+                <i class="bi bi-person-plus text-primary fs-1 mb-2 d-inline-block"></i>
+                <h4 class="fw-bold mb-1">Create an Account</h4>
+                <p class="text-muted small mb-0">Select your role and enter your details</p>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <!-- Role Selection: Applicant or Property Manager -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold d-block text-secondary small text-uppercase">I AM REGISTERING AS</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="Role" id="roleApplicant" value="Applicant" @(Model.Role == "Applicant" ? "checked" : "") autocomplete="off">
+                                <label class="btn btn-outline-primary w-100 py-3 text-center" for="roleApplicant">
+                                    <i class="bi bi-person-badge fs-4 d-block mb-1"></i>
+                                    <span class="fw-bold">Applicant</span>
+                                    <div class="small text-muted" style="font-size: 11px;">Apply for apartments</div>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="Role" id="roleManager" value="PropertyManager" @(Model.Role == "PropertyManager" ? "checked" : "") autocomplete="off">
+                                <label class="btn btn-outline-warning w-100 py-3 text-center" for="roleManager">
+                                    <i class="bi bi-shield-lock fs-4 d-block mb-1"></i>
+                                    <span class="fw-bold text-dark">Property Manager</span>
+                                    <div class="small text-muted" style="font-size: 11px;">Manage properties</div>
+                                </label>
+                            </div>
+                        </div>
+                        <span asp-validation-for="Role" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label fw-semibold"></label>
+                        <input asp-for="FullName" class="form-control" placeholder="e.g. Eleanor Vance" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold"></label>
+                        <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-2 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label fw-semibold"></label>
+                            <input asp-for="Password" class="form-control" placeholder="••••••••" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                            <input asp-for="ConfirmPassword" class="form-control" placeholder="••••••••" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-semibold mb-3">
+                        <i class="bi bi-check2-circle me-1"></i>Complete Registration
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <p class="text-muted small mb-0">Already have an account? <a asp-action="Login" class="fw-bold text-decoration-none">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

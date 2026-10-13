@@ -1,0 +1,110 @@
+@using PropertyRentalPortal.Web.Data.Entities
+@using PropertyRentalPortal.Web.Models
+@model List<UnitListItemViewModel>
+@{
+    var property = (Property)ViewData["Property"]!;
+    ViewData["Title"] = $"{property.Name} - Units";
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="text-decoration-none small text-muted">
+        <i class="bi bi-arrow-left me-1"></i>Back to Properties
+    </a>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">
+                <i class="bi bi-door-open text-primary me-2"></i>@property.Name — Units
+            </h2>
+            <p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i>@property.Address, @property.City, @property.State @property.ZipCode</p>
+        </div>
+        <button type="button" class="btn btn-primary px-3 shadow-sm open-modal-btn" 
+                data-url="@Url.Action("CreateUnitModal", "Properties", new { propertyId = property.Id })">
+            <i class="bi bi-plus-circle me-1"></i>Add Unit
+        </button>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-secondary">
+                <tr>
+                    <th>Unit #</th>
+                    <th>Unit Type</th>
+                    <th>Bedrooms / Bath</th>
+                    <th>Monthly Rent</th>
+                    <th>Lease Availability</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-door-closed fs-1 d-block mb-2"></i>
+                            No units have been added to this property yet.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var unit in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="fw-bold fs-6 text-dark">Unit @unit.UnitNumber</span>
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-secondary">@unit.UnitTypeName</span>
+                                @if (!unit.IsUnitTypeActive)
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border ms-1" title="This unit type is inactive and cannot be chosen for other units">
+                                        Inactive Type
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <span>@unit.Bedrooms Bed / @unit.Bathrooms Bath</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-success">$@unit.MonthlyRent.ToString("N0")</span>
+                                <span class="text-muted small">/mo</span>
+                            </td>
+                            <td>
+                                @if (unit.IsAvailable)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success px-2 py-1">
+                                        <i class="bi bi-check-circle me-1"></i>Available
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1" 
+                                          title="Leased until @unit.ActiveLeaseEndDate?.ToString("MMM dd, yyyy")">
+                                        <i class="bi bi-lock me-1"></i>Leased until @unit.ActiveLeaseEndDate?.ToString("MMM dd, yyyy")
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-outline-secondary btn-sm open-modal-btn me-1"
+                                        data-url="@Url.Action("EditUnitModal", "Properties", new { id = unit.Id })" title="Edit Unit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form asp-action="DeleteUnit" method="post" class="d-inline"
+                                      onsubmit="return confirm('Are you sure you want to delete Unit @unit.UnitNumber?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@unit.Id" />
+                                    <input type="hidden" name="propertyId" value="@property.Id" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Unit">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

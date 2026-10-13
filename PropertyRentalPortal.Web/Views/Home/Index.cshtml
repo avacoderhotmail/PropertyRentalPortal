@@ -1,0 +1,115 @@
+@{
+    ViewData["Title"] = "Welcome";
+}
+
+<div class="row align-items-center py-5">
+    <div class="col-lg-7">
+        <div class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill mb-3">
+            <i class="bi bi-shield-check me-1"></i>Production-Ready .NET 10 Solution
+        </div>
+        <h1 class="display-4 fw-bold text-dark lh-1 mb-3">
+            Apartment Rental &amp; Property Management Portal
+        </h1>
+        <p class="lead text-muted mb-4">
+            A full-stack ASP.NET Core MVC application featuring role-based management, a multi-step single-page rental application wizard, in-modal partial view rendering, and automated 12-month lease issuing.
+        </p>
+
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <a asp-controller="Properties" asp-action="AvailableUnits" class="btn btn-primary btn-lg px-4 shadow-sm">
+                <i class="bi bi-search me-2"></i>Browse Available Units
+            </a>
+            <a asp-controller="Applications" asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">
+                <i class="bi bi-folder2-open me-2"></i>View Applications
+            </a>
+            <a href="/scalar/v1" target="_blank" class="btn btn-outline-info btn-lg px-4">
+                <i class="bi bi-code-square me-2"></i>OpenAPI Interactive Docs
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Role Switcher / Demo Card -->
+    <div class="col-lg-5">
+        <div class="card shadow border-0 bg-white p-4">
+            <div class="card-body p-2">
+                <h4 class="fw-bold text-dark mb-1">
+                    <i class="bi bi-person-badge-fill text-primary me-2"></i>Instant Demo Access
+                </h4>
+                <p class="text-muted small mb-4">Sign in instantly to test role-specific workflows:</p>
+
+                <!-- Property Manager Box -->
+                <div class="border rounded-3 p-3 mb-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-warning text-dark fw-bold px-2 py-1">ROLE: Property Manager</span>
+                        <span class="small text-muted"><i class="bi bi-key me-1"></i>Pre-configured</span>
+                    </div>
+                    <div class="small mb-2">
+                        <div><strong>User:</strong> <code>manager@rental.com</code></div>
+                        <div><strong>Features:</strong> Property &amp; Unit CRUD modals, Application review, 12-month lease generation, review queue.</div>
+                    </div>
+                    <form asp-controller="Account" asp-action="QuickLogin" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="role" value="PropertyManager" />
+                        <button type="submit" class="btn btn-warning w-100 fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In as Property Manager
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Applicant Box -->
+                <div class="border rounded-3 p-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-primary text-white fw-bold px-2 py-1">ROLE: Applicant</span>
+                        <span class="small text-muted"><i class="bi bi-key me-1"></i>Pre-configured</span>
+                    </div>
+                    <div class="small mb-2">
+                        <div><strong>User:</strong> <code>applicant@rental.com</code></div>
+                        <div><strong>Features:</strong> Browse units, multi-step application wizard, prior residence modal, withdraw, resubmit.</div>
+                    </div>
+                    <form asp-controller="Account" asp-action="QuickLogin" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="role" value="Applicant" />
+                        <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In as Applicant
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-3">
+            <div class="card-body">
+                <i class="bi bi-ui-checks-grid text-primary fs-2 mb-2 d-block"></i>
+                <h5 class="fw-bold">Single-Page Wizard</h5>
+                <p class="text-muted small mb-0">
+                    Driven by a unified view model with server-controlled editable vs. read-only states, Back/Continue validation flow, and prior residence modal management.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-3">
+            <div class="card-body">
+                <i class="bi bi-file-earmark-check text-success fs-2 mb-2 d-block"></i>
+                <h5 class="fw-bold">Automated 12-Month Leases</h5>
+                <p class="text-muted small mb-0">
+                    Application approvals issue a 12-month lease. Rigorous server checks reject duplicate leases both at submission and upon final approval.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm p-3">
+            <div class="card-body">
+                <i class="bi bi-window-stack text-warning fs-2 mb-2 d-block"></i>
+                <h5 class="fw-bold">Partial View Modals</h5>
+                <p class="text-muted small mb-0">
+                    All dialogs are populated via partial views returned by controller actions, re-rendering in place with validation errors on failure.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

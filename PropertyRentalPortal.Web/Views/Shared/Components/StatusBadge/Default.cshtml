@@ -1,0 +1,6 @@
+@using PropertyRentalPortal.Web.ViewComponents
+@model StatusBadgeViewModel
+
+<span class="badge @Model.BadgeClass rounded-pill px-3 py-2 fw-semibold @(Model.Size == "lg" ? "fs-6" : "")">
+    <i class="bi @Model.IconClass me-1"></i>@Model.DisplayText
+</span>

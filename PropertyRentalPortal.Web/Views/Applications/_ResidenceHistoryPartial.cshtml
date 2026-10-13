@@ -1,0 +1,96 @@
+@using PropertyRentalPortal.Web.Models
+@model ApplicationWizardViewModel
+
+<div class="card shadow-sm border-0 mb-4" id="residence-history-section">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title mb-0 fw-bold text-primary">
+                <i class="bi bi-houses me-2"></i>Section 2: Residence History
+            </h5>
+            <small class="text-muted">List of prior residential addresses, landlord information, and lease dates</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @if (!Model.IsReadOnly)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm open-modal-btn" 
+                        data-url="@Url.Action("CreateModal", "Residences", new { applicationId = Model.ApplicationId })">
+                    <i class="bi bi-plus-circle me-1"></i>Add Prior Residence
+                </button>
+                <span class="badge bg-primary"><i class="bi bi-pencil me-1"></i>Editable</span>
+            }
+            else
+            {
+                <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Read-Only</span>
+            }
+        </div>
+    </div>
+    <div class="card-body p-4">
+        @if (!Model.Residences.Any())
+        {
+            <div class="text-center py-5 border rounded-3 bg-light text-muted">
+                <i class="bi bi-house-door fs-1 d-block mb-2 text-secondary"></i>
+                <p class="mb-2 fw-semibold">No prior residences recorded yet.</p>
+                @if (!Model.IsReadOnly)
+                {
+                    <p class="small text-muted mb-3">Please click below to add at least one prior residence before continuing.</p>
+                    <button type="button" class="btn btn-primary btn-sm open-modal-btn"
+                            data-url="@Url.Action("CreateModal", "Residences", new { applicationId = Model.ApplicationId })">
+                        <i class="bi bi-plus-circle me-1"></i>Add Prior Residence
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-secondary">
+                        <tr>
+                            <th>Address</th>
+                            <th>Landlord / Contact</th>
+                            <th>Tenancy Dates</th>
+                            @if (!Model.IsReadOnly)
+                            {
+                                <th class="text-end">Actions</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var res in Model.Residences)
+                        {
+                            <tr id="residence-row-@res.Id">
+                                <td>
+                                    <div class="fw-bold text-dark">@res.Address</div>
+                                    <div class="text-muted small">@res.City, @res.State @res.ZipCode</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@res.LandlordName</div>
+                                    <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@res.LandlordPhone</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-calendar-event me-1 text-primary"></i>@res.DateRangeDisplay
+                                    </span>
+                                </td>
+                                @if (!Model.IsReadOnly)
+                                {
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm open-modal-btn me-1"
+                                                data-url="@Url.Action("EditModal", "Residences", new { id = res.Id })" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm delete-residence-btn"
+                                                data-url="@Url.Action("Delete", "Residences", new { id = res.Id })"
+                                                data-id="@res.Id" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

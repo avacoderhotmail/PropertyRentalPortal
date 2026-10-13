@@ -1,0 +1,221 @@
+@using PropertyRentalPortal.Web.Models
+@using PropertyRentalPortal.Web.Data.Enums
+@model ApplicationListViewModel
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-secondary border-bottom">
+                <tr>
+                    <th>
+                        <a href="@Url.Action("Index", new { 
+                            sortBy = "property", 
+                            sortDescending = (Model.Filter.SortBy == "property" && !Model.Filter.SortDescending),
+                            status = Model.Filter.Status,
+                            propertyId = Model.Filter.PropertyId 
+                        })" class="text-decoration-none text-dark fw-bold d-inline-flex align-items-center">
+                            Property & Unit
+                            @if (Model.Filter.SortBy == "property")
+                            {
+                                <i class="bi @(Model.Filter.SortDescending ? "bi-arrow-down-short" : "bi-arrow-up-short") ms-1 text-primary"></i>
+                            }
+                        </a>
+                    </th>
+                    <th>
+                        <a href="@Url.Action("Index", new { 
+                            sortBy = "applicantname", 
+                            sortDescending = (Model.Filter.SortBy == "applicantname" && !Model.Filter.SortDescending),
+                            status = Model.Filter.Status,
+                            propertyId = Model.Filter.PropertyId 
+                        })" class="text-decoration-none text-dark fw-bold d-inline-flex align-items-center">
+                            Applicant
+                            @if (Model.Filter.SortBy == "applicantname")
+                            {
+                                <i class="bi @(Model.Filter.SortDescending ? "bi-arrow-down-short" : "bi-arrow-up-short") ms-1 text-primary"></i>
+                            }
+                        </a>
+                    </th>
+                    <th>Rent</th>
+                    <th>
+                        <a href="@Url.Action("Index", new { 
+                            sortBy = "status", 
+                            sortDescending = (Model.Filter.SortBy == "status" && !Model.Filter.SortDescending),
+                            status = Model.Filter.Status,
+                            propertyId = Model.Filter.PropertyId 
+                        })" class="text-decoration-none text-dark fw-bold d-inline-flex align-items-center">
+                            Status
+                            @if (Model.Filter.SortBy == "status")
+                            {
+                                <i class="bi @(Model.Filter.SortDescending ? "bi-arrow-down-short" : "bi-arrow-up-short") ms-1 text-primary"></i>
+                            }
+                        </a>
+                    </th>
+                    <th>
+                        <a href="@Url.Action("Index", new { 
+                            sortBy = "createdat", 
+                            sortDescending = (Model.Filter.SortBy == "createdat" && !Model.Filter.SortDescending),
+                            status = Model.Filter.Status,
+                            propertyId = Model.Filter.PropertyId 
+                        })" class="text-decoration-none text-dark fw-bold d-inline-flex align-items-center">
+                            Created / Submitted
+                            @if (Model.Filter.SortBy == "createdat" || string.IsNullOrEmpty(Model.Filter.SortBy))
+                            {
+                                <i class="bi @(Model.Filter.SortDescending ? "bi-arrow-down-short" : "bi-arrow-up-short") ms-1 text-primary"></i>
+                            }
+                        </a>
+                    </th>
+                    @if (Model.IsPropertyManager)
+                    {
+                        <th>Review Queue</th>
+                    }
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Applications.Any())
+                {
+                    <tr>
+                        <td colspan="@(Model.IsPropertyManager ? 7 : 6)" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            No applications match the selected criteria.
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var app in Model.Applications)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-dark">@app.PropertyName</div>
+                                <div class="text-muted small">Unit @app.UnitNumber</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@app.ApplicantFullName</div>
+                                <div class="text-muted small">@app.ApplicantEmail</div>
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-success">$@app.MonthlyRent.ToString("N0")</span>
+                                <span class="text-muted small">/mo</span>
+                            </td>
+                            <td>
+                                @await Component.InvokeAsync("StatusBadge", new { status = app.Status })
+                            </td>
+                            <td>
+                                <div>@app.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</div>
+                                @if (app.SubmittedAt.HasValue)
+                                {
+                                    <small class="text-muted">Sub: @app.SubmittedAt.Value.ToLocalTime().ToString("MMM dd, yyyy")</small>
+                                }
+                            </td>
+                            @if (Model.IsPropertyManager)
+                            {
+                                <td>
+                                    @if (app.Status == ApplicationStatus.Submitted)
+                                    {
+                                        <form asp-controller="Review" asp-action="Claim" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="applicationId" value="@app.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                <i class="bi bi-pin-angle me-1"></i>Claim
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (app.Status == ApplicationStatus.UnderReview)
+                                    {
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-person-check me-1"></i>@app.ClaimedByName</span>
+                                            @if (app.IsClaimedByCurrentUser)
+                                            {
+                                                <form asp-controller="Review" asp-action="Release" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="applicationId" value="@app.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-link text-muted p-0 ms-1" title="Release back to queue">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">—</span>
+                                    }
+                                </td>
+                            }
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-controller="Applications" asp-action="Wizard" asp-route-id="@app.Id" class="btn btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i>@(app.CanEdit ? "Edit" : "View")
+                                    </a>
+
+                                    @if (Model.IsPropertyManager && (app.Status == ApplicationStatus.Submitted || app.Status == ApplicationStatus.UnderReview))
+                                    {
+                                        <button type="button" class="btn btn-success open-modal-btn" data-url="@Url.Action("ReviewModal", "Review", new { id = app.Id })">
+                                            <i class="bi bi-clipboard-check me-1"></i>Review
+                                        </button>
+                                    }
+
+                                    @if (!Model.IsPropertyManager && app.CanWithdraw)
+                                    {
+                                        <form asp-controller="Applications" asp-action="Withdraw" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to withdraw this application? This action is permanent.');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@app.Id" />
+                                            <button type="submit" class="btn btn-outline-danger btn-sm ms-1" title="Withdraw Application">
+                                                <i class="bi bi-x-octagon"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3 border-top">
+            <span class="text-muted small">
+                Showing page <strong>@Model.Filter.Page</strong> of <strong>@Model.TotalPages</strong> (Total: <strong>@Model.TotalCount</strong> applications)
+            </span>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { 
+                        page = Model.Filter.Page - 1, 
+                        pageSize = Model.Filter.PageSize,
+                        status = Model.Filter.Status, 
+                        propertyId = Model.Filter.PropertyId,
+                        sortBy = Model.Filter.SortBy,
+                        sortDescending = Model.Filter.SortDescending
+                    })">Previous</a>
+                </li>
+                @for (int p = 1; p <= Model.TotalPages; p++)
+                {
+                    <li class="page-item @(p == Model.Filter.Page ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { 
+                            page = p, 
+                            pageSize = Model.Filter.PageSize,
+                            status = Model.Filter.Status, 
+                            propertyId = Model.Filter.PropertyId,
+                            sortBy = Model.Filter.SortBy,
+                            sortDescending = Model.Filter.SortDescending
+                        })">@p</a>
+                    </li>
+                }
+                <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { 
+                        page = Model.Filter.Page + 1, 
+                        pageSize = Model.Filter.PageSize,
+                        status = Model.Filter.Status, 
+                        propertyId = Model.Filter.PropertyId,
+                        sortBy = Model.Filter.SortBy,
+                        sortDescending = Model.Filter.SortDescending
+                    })">Next</a>
+                </li>
+            </ul>
+        </div>
+    }
+</div>

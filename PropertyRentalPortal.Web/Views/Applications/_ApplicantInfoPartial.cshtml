@@ -1,0 +1,100 @@
+@using PropertyRentalPortal.Web.Models
+@model ApplicationWizardViewModel
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title mb-0 fw-bold text-primary">
+                <i class="bi bi-person-lines-fill me-2"></i>Section 1: Applicant Information
+            </h5>
+            <small class="text-muted">Personal contact information and current residence details</small>
+        </div>
+        @if (Model.IsReadOnly)
+        {
+            <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Read-Only</span>
+        }
+        else
+        {
+            <span class="badge bg-primary"><i class="bi bi-pencil me-1"></i>Editable</span>
+        }
+    </div>
+    <div class="card-body p-4">
+        @if (Model.IsReadOnly)
+        {
+            <!-- Read-Only View of Applicant Information -->
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-semibold">FULL LEGAL NAME</label>
+                    <p class="fs-6 fw-bold text-dark mb-0">@Model.ApplicantInfo.ApplicantFullName</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-semibold">EMAIL ADDRESS</label>
+                    <p class="fs-6 fw-bold text-dark mb-0">@Model.ApplicantInfo.ApplicantEmail</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-semibold">PHONE NUMBER</label>
+                    <p class="fs-6 fw-bold text-dark mb-0">@(string.IsNullOrWhiteSpace(Model.ApplicantInfo.ApplicantPhone) ? "Not provided" : Model.ApplicantInfo.ApplicantPhone)</p>
+                </div>
+                <div class="col-12"><hr class="my-2" /></div>
+                <div class="col-md-6">
+                    <label class="form-label text-muted small fw-semibold">CURRENT STREET ADDRESS</label>
+                    <p class="fs-6 fw-bold text-dark mb-0">@Model.ApplicantInfo.CurrentAddress</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-semibold">CITY, STATE</label>
+                    <p class="fs-6 fw-bold text-dark mb-0">@Model.ApplicantInfo.CurrentCity, @Model.ApplicantInfo.CurrentState</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-semibold">ZIP CODE</label>
+                    <p class="fs-6 fw-bold text-dark mb-0">@Model.ApplicantInfo.CurrentZipCode</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Editable View of Applicant Information -->
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="ApplicantInfo.ApplicantFullName" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.ApplicantFullName" class="form-control form-control-lg" placeholder="e.g. Johnathan Doe" />
+                    <span asp-validation-for="ApplicantInfo.ApplicantFullName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ApplicantInfo.ApplicantEmail" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.ApplicantEmail" class="form-control form-control-lg" placeholder="john@example.com" />
+                    <span asp-validation-for="ApplicantInfo.ApplicantEmail" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ApplicantInfo.ApplicantPhone" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.ApplicantPhone" class="form-control form-control-lg" placeholder="(555) 000-0000" />
+                    <span asp-validation-for="ApplicantInfo.ApplicantPhone" class="text-danger small"></span>
+                </div>
+
+                <div class="col-12 mt-4">
+                    <h6 class="text-secondary fw-bold text-uppercase small border-bottom pb-2">Current Residence</h6>
+                </div>
+
+                <div class="col-md-6">
+                    <label asp-for="ApplicantInfo.CurrentAddress" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.CurrentAddress" class="form-control" placeholder="123 Main St, Apt 4" />
+                    <span asp-validation-for="ApplicantInfo.CurrentAddress" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ApplicantInfo.CurrentCity" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.CurrentCity" class="form-control" placeholder="Chicago" />
+                    <span asp-validation-for="ApplicantInfo.CurrentCity" class="text-danger small"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="ApplicantInfo.CurrentState" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.CurrentState" class="form-control" placeholder="IL" />
+                    <span asp-validation-for="ApplicantInfo.CurrentState" class="text-danger small"></span>
+                </div>
+                <div class="col-md-1">
+                    <label asp-for="ApplicantInfo.CurrentZipCode" class="form-label fw-semibold"></label>
+                    <input asp-for="ApplicantInfo.CurrentZipCode" class="form-control" placeholder="60601" />
+                    <span asp-validation-for="ApplicantInfo.CurrentZipCode" class="text-danger small"></span>
+                </div>
+            </div>
+        }
+    </div>
+</div>

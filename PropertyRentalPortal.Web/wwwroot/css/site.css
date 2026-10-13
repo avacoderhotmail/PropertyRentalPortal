@@ -1,0 +1,150 @@
+/* Custom Styles for PropertyRentalPortal */
+:root {
+    --primary-color: #1e3a8a;
+    --primary-hover: #1e40af;
+    --secondary-color: #475569;
+    --accent-color: #0284c7;
+    --bg-light: #f8fafc;
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #1e293b;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+footer {
+    flex-shrink: 0;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.card {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.btn {
+    border-radius: 0.5rem;
+    font-weight: 500;
+}
+
+/* Wizard Stepper Bar */
+.wizard-stepper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.wizard-stepper::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background-color: #e2e8f0;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+
+.wizard-step-item {
+    position: relative;
+    z-index: 2;
+    background: #fff;
+    padding: 0 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    cursor: default;
+}
+
+.wizard-step-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: all 0.2s ease-in-out;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 2px #cbd5e1;
+}
+
+.wizard-step-item.active .wizard-step-circle {
+    background-color: #2563eb;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+}
+
+.wizard-step-item.completed .wizard-step-circle {
+    background-color: #10b981;
+    color: #fff;
+    box-shadow: 0 0 0 2px #10b981;
+}
+
+.wizard-step-label {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.wizard-step-item.active .wizard-step-label {
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
+.wizard-step-item.completed .wizard-step-label {
+    color: #065f46;
+}
+
+/* Timeline Styling */
+.timeline {
+    border-left: 2px solid #e2e8f0;
+}
+
+.timeline-item {
+    position: relative;
+}
+
+.timeline-marker {
+    background-color: #3b82f6 !important;
+    box-shadow: 0 0 0 4px #eff6ff;
+}
+
+/* Modal Polish */
+.modal-content {
+    border-radius: 1rem;
+    border: none;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.modal-header {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-footer {
+    border-top: 1px solid #f1f5f9;
+}

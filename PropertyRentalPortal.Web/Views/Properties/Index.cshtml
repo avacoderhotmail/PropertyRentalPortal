@@ -1,0 +1,84 @@
+@using PropertyRentalPortal.Web.Models
+@model List<PropertyListItemViewModel>
+@{
+    ViewData["Title"] = "Manage Properties";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">
+            <i class="bi bi-buildings text-primary me-2"></i>Properties &amp; Communities
+        </h2>
+        <p class="text-muted small mb-0">Maintain apartment communities and their residential units</p>
+    </div>
+    <button type="button" class="btn btn-primary px-3 shadow-sm open-modal-btn" 
+            data-url="@Url.Action("CreatePropertyModal", "Properties")">
+        <i class="bi bi-plus-circle me-1"></i>Add Property
+    </button>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card border-0 shadow-sm p-5 text-center text-muted">
+        <i class="bi bi-building fs-1 d-block mb-3 text-secondary"></i>
+        <h5>No properties registered yet</h5>
+        <p class="small text-muted mb-3">Click the button below to add your first apartment property.</p>
+        <div>
+            <button type="button" class="btn btn-primary open-modal-btn" data-url="@Url.Action("CreatePropertyModal", "Properties")">
+                <i class="bi bi-plus-circle me-1"></i>Add Property
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var property in Model)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow-sm border-0 h-100 d-flex flex-column">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">@property.Name</h5>
+                            <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>@property.FullAddress</small>
+                        </div>
+                    </div>
+                    <div class="card-body flex-grow-1">
+                        @if (!string.IsNullOrWhiteSpace(property.Description))
+                        {
+                            <p class="text-secondary small mb-3">@property.Description</p>
+                        }
+                        <div class="row text-center g-2 bg-light p-2 rounded-3 border">
+                            <div class="col-6">
+                                <small class="text-muted d-block" style="font-size: 11px;">TOTAL UNITS</small>
+                                <span class="fs-5 fw-bold text-dark">@property.TotalUnits</span>
+                            </div>
+                            <div class="col-6 border-start">
+                                <small class="text-muted d-block" style="font-size: 11px;">AVAILABLE</small>
+                                <span class="fs-5 fw-bold text-success">@property.AvailableUnits</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center">
+                        <a asp-action="Details" asp-route-id="@property.Id" class="btn btn-outline-primary btn-sm fw-semibold">
+                            <i class="bi bi-door-open me-1"></i>Manage Units (@property.TotalUnits)
+                        </a>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary open-modal-btn" 
+                                    data-url="@Url.Action("EditPropertyModal", "Properties", new { id = property.Id })" title="Edit Property">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <form asp-action="DeleteProperty" asp-route-id="@property.Id" method="post" class="d-inline"
+                                  onsubmit="return confirm('Are you sure you want to delete this property?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-outline-danger" title="Delete Property">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

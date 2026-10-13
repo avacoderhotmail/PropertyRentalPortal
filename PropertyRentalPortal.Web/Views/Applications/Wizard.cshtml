@@ -1,0 +1,194 @@
+@using PropertyRentalPortal.Web.Models
+@using PropertyRentalPortal.Web.Data.Enums
+@model ApplicationWizardViewModel
+@{
+    ViewData["Title"] = $"Application #{Model.ApplicationId} — {Model.PropertyName}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+        <!-- Top Navigation / Back to List -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a asp-action="Index" class="text-decoration-none text-muted small">
+                <i class="bi bi-arrow-left me-1"></i>Back to Applications
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                @await Component.InvokeAsync("StatusBadge", new { status = Model.Status, size = "lg" })
+
+                @if (Model.IsPropertyManager && (Model.Status == ApplicationStatus.Submitted || Model.Status == ApplicationStatus.UnderReview))
+                {
+                    <button type="button" class="btn btn-success btn-sm open-modal-btn" 
+                            data-url="@Url.Action("ReviewModal", "Review", new { id = Model.ApplicationId })">
+                        <i class="bi bi-clipboard-check me-1"></i>Review Application
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Target Apartment Summary Header -->
+        <div class="card shadow-sm border-0 mb-4 bg-white">
+            <div class="card-body p-4 d-flex flex-wrap justify-content-between align-items-center">
+                <div class="d-flex align-items-center mb-2 mb-md-0">
+                    <div class="rounded-3 bg-primary-subtle text-primary p-3 me-3">
+                        <i class="bi bi-building fs-2"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">@Model.PropertyName</h4>
+                        <div class="text-muted small">Unit @Model.UnitNumber &bull; @Model.UnitTypeName (@Model.Bedrooms Bed / @Model.Bathrooms Bath)</div>
+                        <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>@Model.PropertyAddress</div>
+                    </div>
+                </div>
+                <div class="text-md-end">
+                    <span class="fs-3 fw-bold text-success">$@Model.MonthlyRent.ToString("N0")</span>
+                    <span class="text-muted small">/month</span>
+                    <div class="text-muted small">Standard 12-Month Lease</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Single Page Stepper Indicator -->
+        <div class="wizard-stepper">
+            <!-- Step 1 -->
+            <a href="@(Model.IsReadOnly ? Url.Action("Wizard", new { id = Model.ApplicationId, step = 1 }) : "#")" 
+               class="wizard-step-item @(Model.CurrentSection == 1 ? "active" : (Model.ApplicantInfoSaved ? "completed" : ""))">
+                <div class="wizard-step-circle">
+                    @if (Model.ApplicantInfoSaved && Model.CurrentSection > 1)
+                    {
+                        <i class="bi bi-check-lg"></i>
+                    }
+                    else
+                    {
+                        <span>1</span>
+                    }
+                </div>
+                <div class="wizard-step-label">Applicant Info</div>
+            </a>
+
+            <!-- Step 2 -->
+            <a href="@(Model.IsReadOnly ? Url.Action("Wizard", new { id = Model.ApplicationId, step = 2 }) : "#")" 
+               class="wizard-step-item @(Model.CurrentSection == 2 ? "active" : (Model.ResidenceHistorySaved ? "completed" : ""))">
+                <div class="wizard-step-circle">
+                    @if (Model.ResidenceHistorySaved && Model.CurrentSection > 2)
+                    {
+                        <i class="bi bi-check-lg"></i>
+                    }
+                    else
+                    {
+                        <span>2</span>
+                    }
+                </div>
+                <div class="wizard-step-label">Residence History</div>
+            </a>
+
+            <!-- Step 3 -->
+            <a href="@(Model.IsReadOnly ? Url.Action("Wizard", new { id = Model.ApplicationId, step = 3 }) : "#")" 
+               class="wizard-step-item @(Model.CurrentSection == 3 ? "active" : "")">
+                <div class="wizard-step-circle">
+                    @if (Model.Status == ApplicationStatus.Submitted || Model.Status == ApplicationStatus.Approved)
+                    {
+                        <i class="bi bi-check-lg"></i>
+                    }
+                    else
+                    {
+                        <span>3</span>
+                    }
+                </div>
+                <div class="wizard-step-label">Summary &amp; Submit</div>
+            </a>
+        </div>
+
+        <!-- Single Form Posting to ONE Action (ProcessStep) -->
+        <form asp-action="ProcessStep" method="post" id="wizardForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ApplicationId" />
+            <input type="hidden" asp-for="CurrentSection" />
+
+            <!-- Global / Server Validation Summary -->
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm mb-4" role="alert"></div>
+
+            <!-- Active Section Rendering (Driven by ONE ViewModel) -->
+            @if (Model.CurrentSection == 1)
+            {
+                @await Html.PartialAsync("_ApplicantInfoPartial", Model)
+            }
+            else if (Model.CurrentSection == 2)
+            {
+                @await Html.PartialAsync("_ResidenceHistoryPartial", Model)
+            }
+            else
+            {
+                @await Html.PartialAsync("_ApplicationSummaryPartial", Model)
+            }
+
+            <!-- Stepper Buttons Bar -->
+            <div class="card shadow-sm border-0 bg-white mb-4">
+                <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        @if (Model.CurrentSection > 1)
+                        {
+                            <button type="submit" name="ActionClicked" value="Back" class="btn btn-outline-secondary px-4 fw-semibold" formnovalidate>
+                                <i class="bi bi-arrow-left me-1"></i>Back
+                            </button>
+                        }
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        @if (Model.IsReadOnly)
+                        {
+                            <!-- For Read-Only viewers (or Property Managers), allow switching sections directly -->
+                            <div class="btn-group">
+                                <a asp-action="Wizard" asp-route-id="@Model.ApplicationId" asp-route-step="1" 
+                                   class="btn btn-sm @(Model.CurrentSection == 1 ? "btn-primary" : "btn-outline-secondary")">
+                                    Section 1
+                                </a>
+                                <a asp-action="Wizard" asp-route-id="@Model.ApplicationId" asp-route-step="2" 
+                                   class="btn btn-sm @(Model.CurrentSection == 2 ? "btn-primary" : "btn-outline-secondary")">
+                                    Section 2
+                                </a>
+                                <a asp-action="Wizard" asp-route-id="@Model.ApplicationId" asp-route-step="3" 
+                                   class="btn btn-sm @(Model.CurrentSection == 3 ? "btn-primary" : "btn-outline-secondary")">
+                                    Summary
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            @if (Model.CurrentSection < 3)
+                            {
+                                <button type="submit" name="ActionClicked" value="Continue" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                                    <span>Continue</span><i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            }
+                            else if (Model.CurrentSection == 3)
+                            {
+                                <!-- Submit available from Summary only once both sections saved -->
+                                <button type="submit" name="ActionClicked" value="Submit" 
+                                        class="btn btn-success px-5 fw-bold shadow" 
+                                        @(Model.CanSubmit ? "" : "disabled")
+                                        title="@(Model.CanSubmit ? "Submit your application for review" : "Complete both sections first")">
+                                    <i class="bi bi-send-check me-1"></i>Submit Application
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Bonus 3: Property Manager Notes View Component (Visible & editable only to Property Managers) -->
+        @if (Model.IsPropertyManager)
+        {
+            @await Component.InvokeAsync("PropertyManagerNotes", new { 
+                applicationId = Model.ApplicationId, 
+                notes = Model.PropertyManagerNotes, 
+                isPropertyManager = Model.IsPropertyManager 
+            })
+        }
+
+        <!-- Status Change and Review Timeline (View Component) -->
+        @if (Model.StatusHistory.Any())
+        {
+            @await Component.InvokeAsync("ApplicationTimeline", Model.StatusHistory)
+        }
+    </div>
+</div>

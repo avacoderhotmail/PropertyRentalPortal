@@ -1,0 +1,81 @@
+@using PropertyRentalPortal.Web.Models
+@using PropertyRentalPortal.Web.Data.Enums
+@model ReviewApplicationViewModel
+
+<div class="modal-header bg-light">
+    <h5 class="modal-title fw-bold text-primary">
+        <i class="bi bi-clipboard-check me-2"></i>Review Rental Application #@Model.ApplicationId
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<form id="review-modal-form" asp-controller="Review" asp-action="CompleteReview" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="ApplicationId" />
+    <input type="hidden" asp-for="ApplicantName" />
+    <input type="hidden" asp-for="PropertyName" />
+    <input type="hidden" asp-for="UnitDisplay" />
+
+    <div class="modal-body p-4">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" role="alert"></div>
+
+        <div class="alert alert-light border d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <small class="text-muted d-block fw-semibold">APPLICANT</small>
+                <span class="fw-bold">@Model.ApplicantName</span>
+            </div>
+            <div class="text-end">
+                <small class="text-muted d-block fw-semibold">TARGET UNIT</small>
+                <span class="fw-bold text-primary">@Model.PropertyName (@Model.UnitDisplay)</span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Review Decision</label>
+            <div class="d-flex gap-3">
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" asp-for="Outcome" value="@ReviewOutcome.Approve" id="outcome-approve" />
+                    <label class="form-check-label text-success fw-semibold" for="outcome-approve">
+                        <i class="bi bi-check-circle me-1"></i>Approve (Issues 12-Month Lease)
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" asp-for="Outcome" value="@ReviewOutcome.Return" id="outcome-return" />
+                    <label class="form-check-label text-warning-emphasis fw-semibold" for="outcome-return">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Return for Corrections
+                    </label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" asp-for="Outcome" value="@ReviewOutcome.Deny" id="outcome-deny" />
+                    <label class="form-check-label text-danger fw-semibold" for="outcome-deny">
+                        <i class="bi bi-x-circle me-1"></i>Deny Application
+                    </label>
+                </div>
+            </div>
+            <span asp-validation-for="Outcome" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Comment" class="form-label fw-bold">
+                Review Comments <span id="comment-required-tag" class="text-danger">*</span>
+            </label>
+            <textarea asp-for="Comment" rows="4" class="form-control" placeholder="Provide feedback or rationale (Mandatory when returning or denying)..."></textarea>
+            <span asp-validation-for="Comment" class="text-danger small"></span>
+            <small class="text-muted d-block mt-1">
+                A comment is strictly required when choosing <strong>Return</strong> or <strong>Deny</strong>.
+            </small>
+        </div>
+
+        <div class="alert alert-info small py-2 mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            Approving will automatically issue a 12-month lease for this unit starting today, making the unit unavailable.
+        </div>
+    </div>
+
+    <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary px-4 fw-semibold">
+            <i class="bi bi-check2-circle me-1"></i>Submit Decision
+        </button>
+    </div>
+</form>

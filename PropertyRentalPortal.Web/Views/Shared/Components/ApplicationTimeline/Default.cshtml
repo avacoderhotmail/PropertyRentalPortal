@@ -1,0 +1,47 @@
+@using PropertyRentalPortal.Web.Models
+@model List<ApplicationStatusHistoryItemViewModel>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex align-items-center">
+        <i class="bi bi-clock-history text-primary fs-5 me-2"></i>
+        <h5 class="card-title mb-0 fw-bold">Application Status & Review History</h5>
+    </div>
+    <div class="card-body p-4">
+        @if (!Model.Any())
+        {
+            <p class="text-muted fst-italic mb-0">No status changes recorded yet.</p>
+        }
+        else
+        {
+            <div class="timeline position-relative ps-4">
+                @foreach (var item in Model)
+                {
+                    <div class="timeline-item mb-4 position-relative">
+                        <div class="timeline-marker position-absolute rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                             style="left: -32px; top: 0; width: 24px; height: 24px; font-size: 11px;">
+                            <i class="bi bi-circle-fill"></i>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-between align-items-baseline mb-1">
+                            <div>
+                                <span class="fw-bold text-dark">
+                                    @(item.OldStatus.HasValue ? $"{item.OldStatus} → " : "")@item.NewStatus
+                                </span>
+                                <span class="badge bg-light text-secondary border ms-2">@item.ChangedByName</span>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>@item.ChangedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
+                            </small>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(item.Comment))
+                        {
+                            <div class="alert alert-light border py-2 px-3 mt-2 mb-0 rounded-3 text-secondary">
+                                <i class="bi bi-chat-quote me-1 text-primary"></i>
+                                <span>@item.Comment</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

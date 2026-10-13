@@ -1,0 +1,129 @@
+@using PropertyRentalPortal.Web.Models
+@using PropertyRentalPortal.Web.Data.Enums
+@model ApplicationWizardViewModel
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title mb-0 fw-bold text-success">
+                <i class="bi bi-file-earmark-check-fill me-2"></i>Section 3: Application Summary
+            </h5>
+            <small class="text-muted">Review all application details before final submission</small>
+        </div>
+        <span class="badge bg-secondary"><i class="bi bi-eye me-1"></i>Read-Only Review</span>
+    </div>
+    <div class="card-body p-4">
+        <!-- Target Apartment Information -->
+        <div class="alert alert-primary bg-primary-subtle border-primary-subtle d-flex align-items-center justify-content-between mb-4">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-building fs-3 text-primary me-3"></i>
+                <div>
+                    <h5 class="mb-0 fw-bold text-dark">@Model.PropertyName — Unit @Model.UnitNumber</h5>
+                    <div class="text-muted small">@Model.PropertyAddress &bull; @Model.UnitTypeName (@Model.Bedrooms Bed / @Model.Bathrooms Bath)</div>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="fs-4 fw-bold text-primary">$@Model.MonthlyRent.ToString("N0")<span class="fs-6 text-muted fw-normal">/mo</span></div>
+            </div>
+        </div>
+
+        <!-- Section 1 Summary -->
+        <div class="card border mb-4">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-secondary">
+                    <i class="bi bi-person-circle me-1"></i>Applicant Information
+                    @if (Model.ApplicantInfoSaved)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success ms-2"><i class="bi bi-check2"></i> Saved</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger ms-2"><i class="bi bi-exclamation-triangle"></i> Not Saved</span>
+                    }
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <small class="text-muted d-block fw-semibold">LEGAL NAME</small>
+                        <span class="fw-bold">@Model.ApplicantInfo.ApplicantFullName</span>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block fw-semibold">EMAIL</small>
+                        <span>@Model.ApplicantInfo.ApplicantEmail</span>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted d-block fw-semibold">PHONE</small>
+                        <span>@Model.ApplicantInfo.ApplicantPhone</span>
+                    </div>
+                    <div class="col-12"><hr class="my-2" /></div>
+                    <div class="col-md-8">
+                        <small class="text-muted d-block fw-semibold">CURRENT ADDRESS</small>
+                        <span>@Model.ApplicantInfo.CurrentAddress, @Model.ApplicantInfo.CurrentCity, @Model.ApplicantInfo.CurrentState @Model.ApplicantInfo.CurrentZipCode</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2 Summary -->
+        <div class="card border mb-4">
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-secondary">
+                    <i class="bi bi-houses me-1"></i>Prior Residence History
+                    @if (Model.ResidenceHistorySaved)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success ms-2"><i class="bi bi-check2"></i> Saved</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger ms-2"><i class="bi bi-exclamation-triangle"></i> Incomplete</span>
+                    }
+                </h6>
+                <span class="badge bg-light text-dark border">@Model.Residences.Count record(s)</span>
+            </div>
+            <div class="card-body">
+                @if (!Model.Residences.Any())
+                {
+                    <div class="text-danger small fst-italic py-2">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>No prior residences recorded. You must add at least one residence in Section 2.
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var res in Model.Residences)
+                        {
+                            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold">@res.Address, @res.City, @res.State @res.ZipCode</div>
+                                    <div class="small text-muted">Landlord: @res.LandlordName (@res.LandlordPhone)</div>
+                                </div>
+                                <span class="badge bg-secondary-subtle text-secondary border">@res.DateRangeDisplay</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Submission Readiness Alert -->
+        @if (!Model.CanSubmit && (Model.Status == ApplicationStatus.Draft || Model.Status == ApplicationStatus.Returned))
+        {
+            <div class="alert alert-warning d-flex align-items-center mb-0">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                <div>
+                    <strong>Application Incomplete:</strong> Submit is available from the Summary only once both sections (Applicant Information and Residence History) have been successfully completed and saved.
+                </div>
+            </div>
+        }
+        else if (Model.Status == ApplicationStatus.Submitted)
+        {
+            <div class="alert alert-info d-flex align-items-center mb-0">
+                <i class="bi bi-info-circle-fill fs-4 me-3 text-info"></i>
+                <div>
+                    <strong>Application Submitted:</strong> This application has been submitted and is currently awaiting property manager review.
+                </div>
+            </div>
+        }
+    </div>
+</div>
