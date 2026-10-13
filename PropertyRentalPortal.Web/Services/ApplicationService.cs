@@ -33,7 +33,7 @@ public class ApplicationService : IApplicationService
             .Include(a => a.Notes)
                 .ThenInclude(n => n.AuthorUser)
             .Include(a => a.Lease)
-            .AsQueryable();
+            .AsSplitQuery();
 
         if (!isManager && !string.IsNullOrEmpty(requestingUserId))
         {
@@ -245,6 +245,7 @@ public class ApplicationService : IApplicationService
             .Include(a => a.Unit)
                 .ThenInclude(u => u.Leases)
             .Include(a => a.Residences)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(a => a.Id == applicationId);
 
         if (app == null)
@@ -431,6 +432,7 @@ public class ApplicationService : IApplicationService
             .Include(a => a.Unit)
                 .ThenInclude(u => u.Leases)
             .Include(a => a.StatusHistories)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(a => a.Id == applicationId);
 
         if (app == null)

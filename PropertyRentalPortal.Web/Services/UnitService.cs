@@ -22,6 +22,7 @@ public class UnitService : IUnitService
             .Include(p => p.Units)
                 .ThenInclude(u => u.Leases)
             .OrderBy(p => p.Name)
+            .AsSplitQuery()
             .ToListAsync();
     }
 
@@ -32,6 +33,7 @@ public class UnitService : IUnitService
                 .ThenInclude(u => u.UnitType)
             .Include(p => p.Units)
                 .ThenInclude(u => u.Leases)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -69,6 +71,7 @@ public class UnitService : IUnitService
                 .ThenInclude(u => u.Leases)
             .Include(p => p.Units)
                 .ThenInclude(u => u.Applications)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(p => p.Id == propertyId);
 
         if (property == null)
@@ -90,6 +93,7 @@ public class UnitService : IUnitService
             .Include(u => u.Property)
             .Include(u => u.UnitType)
             .Include(u => u.Leases)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (propertyId.HasValue)
@@ -114,6 +118,7 @@ public class UnitService : IUnitService
             .Include(u => u.Property)
             .Include(u => u.UnitType)
             .Include(u => u.Leases)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
@@ -191,6 +196,7 @@ public class UnitService : IUnitService
         var unit = await _context.Units
             .Include(u => u.Leases)
             .Include(u => u.Applications)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(u => u.Id == unitId);
 
         if (unit == null)
