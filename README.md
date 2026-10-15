@@ -146,7 +146,7 @@ sqllocaldb start mssqllocaldb
 2 Run the web application:
 
 ```powershell
-cd C:\<your repo directory>\PropertyRentalPortal
+cd C:\<your repo directory>\PropertyRentalPortal --launch-profile https
 dotnet run --project PropertyRentalPortal.Web/PropertyRentalPortal.Web.csproj
 ```
 
