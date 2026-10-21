@@ -5,6 +5,9 @@ namespace PropertyRentalPortal.Web.Data.Entities;
 
 public class Unit
 {
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
+
     public int Id { get; set; }
 
     public int PropertyId { get; set; }
@@ -35,6 +38,6 @@ public class Unit
     public bool HasActiveLease(DateTime? asOfDate = null)
     {
         var targetDate = (asOfDate ?? DateTime.UtcNow).Date;
-        return Leases.Any(l => l.StartDate.Date <= targetDate && targetDate <= l.EndDate.Date);
+        return Leases.Any(l => l.IsActive && l.StartDate.Date <= targetDate && targetDate <= l.EndDate.Date);
     }
 }

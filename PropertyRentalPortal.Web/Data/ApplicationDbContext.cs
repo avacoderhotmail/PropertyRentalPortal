@@ -32,6 +32,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(u => u.PropertyId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.Property(u => u.RowVersion).IsRowVersion();
+
             entity.HasOne(u => u.UnitType)
                 .WithMany(ut => ut.Units)
                 .HasForeignKey(u => u.UnitTypeId)
@@ -64,6 +66,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(l => l.MonthlyRent)
                 .HasPrecision(18, 2);
+
+            entity.HasIndex(l => l.UnitId)
+            .IsUnique()
+            .HasFilter("[IsActive] = 1")
+            .HasDatabaseName("IX_Leases_UnitId_Active");
         });
 
         // RentalApplication relationships

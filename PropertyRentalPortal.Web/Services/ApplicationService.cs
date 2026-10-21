@@ -471,6 +471,7 @@ public class ApplicationService : IApplicationService
                 StartDate = leaseStartDate,
                 EndDate = leaseEndDate,
                 MonthlyRent = app.Unit.MonthlyRent,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 

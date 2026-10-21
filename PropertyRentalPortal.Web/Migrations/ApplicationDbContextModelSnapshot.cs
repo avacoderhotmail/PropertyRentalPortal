@@ -281,6 +281,9 @@ namespace PropertyRentalPortal.Web.Migrations
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<decimal>("MonthlyRent")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18, 2)");
@@ -303,7 +306,10 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasIndex("TenantUserId");
 
-                    b.HasIndex("UnitId");
+                    b.HasIndex("UnitId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Leases_UnitId_Active")
+                        .HasFilter("[IsActive] = 1");
 
                     b.ToTable("Leases");
                 });
@@ -559,6 +565,11 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.Property<int>("PropertyId")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("UnitNumber")
                         .IsRequired()

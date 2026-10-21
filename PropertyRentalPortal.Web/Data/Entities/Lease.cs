@@ -21,5 +21,7 @@ public class Lease
     [Column(TypeName = "decimal(18, 2)")]
     public decimal MonthlyRent { get; set; }
 
+    public bool IsActive { get; set; } = true;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

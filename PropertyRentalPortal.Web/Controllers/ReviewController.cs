@@ -5,6 +5,7 @@ using PropertyRentalPortal.Web.Data.Enums;
 using PropertyRentalPortal.Web.Data.Seeding;
 using PropertyRentalPortal.Web.Models;
 using PropertyRentalPortal.Web.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace PropertyRentalPortal.Web.Controllers;
 
@@ -49,17 +50,28 @@ public class ReviewController : Controller
             return PartialView("_ReviewModalPartial", model);
         }
 
-        var result = await _applicationService.ReviewApplicationAsync(
-            model.ApplicationId,
-            CurrentUserId,
-            model.Outcome,
-            model.Comment);
-
-        if (!result.Success)
+        try
         {
-            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Could not complete review.");
+            var result = await _applicationService.ReviewApplicationAsync(
+                model.ApplicationId,
+                CurrentUserId,
+                model.Outcome,
+                model.Comment);
+
+            if (!result.Success)
+            {
+                ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Could not complete review.");
+                return PartialView("_ReviewModalPartial", model);
+            }
+
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+        {
+            // Handle unique constraint violation (e.g., trying to approve an application for a unit that already has an active lease)
+            ModelState.AddModelError(string.Empty, "Cannot approve this application because the unit already has an active lease.");
             return PartialView("_ReviewModalPartial", model);
         }
+
 
         return Json(new
         {
