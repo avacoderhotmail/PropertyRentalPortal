@@ -27,14 +27,14 @@ public class ReviewController : Controller
     {
         var app = await _applicationService.GetApplicationByIdAsync(id, CurrentUserId, isManager: true);
         if (app == null) return NotFound();
-
         var model = new ReviewApplicationViewModel
         {
             ApplicationId = app.Id,
             ApplicantName = app.ApplicantFullName,
             PropertyName = app.Unit?.Property?.Name ?? string.Empty,
             UnitDisplay = $"Unit {app.Unit?.UnitNumber}",
-            Outcome = ReviewOutcome.Approve
+            Outcome = ReviewOutcome.Approve,
+            RowVersionString = app.RowVersion != null ? Convert.ToBase64String(app.RowVersion) : null
         };
 
         return PartialView("_ReviewModalPartial", model);
@@ -50,17 +50,26 @@ public class ReviewController : Controller
             return PartialView("_ReviewModalPartial", model);
         }
 
+        byte[]? rowVersion = !string.IsNullOrEmpty(model.RowVersionString) ? Convert.FromBase64String(model.RowVersionString) : null;
         try
         {
             var result = await _applicationService.ReviewApplicationAsync(
                 model.ApplicationId,
                 CurrentUserId,
                 model.Outcome,
-                model.Comment);
+                model.Comment,
+                rowVersion);
 
             if (!result.Success)
             {
-                ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Could not complete review.");
+                if (result.IsConcurrencyConflict)
+                {
+                    ModelState.AddModelError(string.Empty, "The application was modified by another user. Please reload and try again.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Could not complete review.");
+                }
                 return PartialView("_ReviewModalPartial", model);
             }
 

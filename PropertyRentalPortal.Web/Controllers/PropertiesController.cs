@@ -244,6 +244,7 @@ public class PropertiesController : Controller
         var unit = await _unitService.GetUnitByIdAsync(id);
         if (unit == null) return NotFound();
 
+
         // Pass current unit's unitTypeId so inactive types already used by this unit still display!
         var unitTypes = await _unitService.GetUnitTypesForSelectionAsync(unit.UnitTypeId);
         var model = new UnitFormViewModel
@@ -261,7 +262,8 @@ public class PropertiesController : Controller
                 Value = ut.Id.ToString(),
                 Text = ut.IsActive ? ut.Name : $"{ut.Name} (Inactive - Assigned)",
                 Selected = ut.Id == unit.UnitTypeId
-            }).ToList()
+            }).ToList(),
+            RowVersionString = unit.RowVersion != null ? Convert.ToBase64String(unit.RowVersion) : null
         };
 
         return PartialView("_UnitModalPartial", model);

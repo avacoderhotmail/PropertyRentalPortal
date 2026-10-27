@@ -175,7 +175,8 @@ public class ApplicationService : IApplicationService
     public async Task<ServiceResult<RentalApplication>> SaveApplicantInfoAsync(
         int applicationId,
         string applicantUserId,
-        ApplicantInfoInputModel model)
+        ApplicantInfoInputModel model,
+        byte[]? rowVersion)
     {
         var app = await _context.RentalApplications
             .Include(a => a.Unit)
@@ -191,6 +192,8 @@ public class ApplicationService : IApplicationService
         if (!app.IsEditable)
             return ServiceResult<RentalApplication>.Fail($"Application cannot be edited in its current status ({app.Status}).");
 
+        ApplyRowVersion(app, rowVersion);
+
         // Update Section 1 data
         app.ApplicantFullName = model.ApplicantFullName;
         app.ApplicantEmail = model.ApplicantEmail;
@@ -203,13 +206,22 @@ public class ApplicationService : IApplicationService
         app.ApplicantInfoSaved = true;
         app.CurrentSection = 2; // Advance to Section 2: Residence History
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult<RentalApplication>.Conflict("The application was modified by another user. Please reload and try again.");
+        }
+
         return ServiceResult<RentalApplication>.Ok(app);
     }
 
     public async Task<ServiceResult<RentalApplication>> ValidateResidenceHistorySectionAsync(
         int applicationId,
-        string applicantUserId)
+        string applicantUserId,
+        byte[]? rowVersion)
     {
         var app = await _context.RentalApplications
             .Include(a => a.Unit)
@@ -230,16 +242,26 @@ public class ApplicationService : IApplicationService
             return ServiceResult<RentalApplication>.Fail("Please add at least one prior residence before continuing to the summary.");
         }
 
+        ApplyRowVersion(app, rowVersion);
+
         app.ResidenceHistorySaved = true;
         app.CurrentSection = 3; // Advance to Summary
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult<RentalApplication>.Conflict("The application was modified by another user. Please reload and try again.");
+        }
         return ServiceResult<RentalApplication>.Ok(app);
     }
 
     public async Task<ServiceResult<RentalApplication>> SubmitApplicationAsync(
         int applicationId,
-        string applicantUserId)
+        string applicantUserId,
+        byte[]? rowVersion = null)
     {
         var app = await _context.RentalApplications
             .Include(a => a.Unit)
@@ -260,6 +282,8 @@ public class ApplicationService : IApplicationService
         // Requirement: "Submit is available from the Summary only once both sections have been saved."
         if (!app.ApplicantInfoSaved || !app.ResidenceHistorySaved)
             return ServiceResult<RentalApplication>.Fail("Both Applicant Information and Residence History sections must be saved prior to submission.");
+
+        ApplyRowVersion(app, rowVersion);
 
         // Requirement: "At submit and again at approval, reject the action with an error when the unit has an active lease. Other open applications for that unit are left as they are. The approval check prevents a second lease."
         var today = DateTime.UtcNow.Date;
@@ -283,14 +307,21 @@ public class ApplicationService : IApplicationService
                 : "Submitted completed application for review."
         });
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult<RentalApplication>.Conflict("The application was modified by another user. Please reload and try again.");
+        }
         return ServiceResult<RentalApplication>.Ok(app);
     }
 
     public async Task<ServiceResult> WithdrawApplicationAsync(
         int applicationId,
         string applicantUserId,
-        string? reason)
+        string? reason, byte[]? rowVersion = null)
     {
         var app = await _context.RentalApplications
             .Include(a => a.StatusHistories)
@@ -298,6 +329,8 @@ public class ApplicationService : IApplicationService
 
         if (app == null)
             return ServiceResult.Fail("Application not found.");
+
+        ApplyRowVersion(app, rowVersion);
 
         if (app.ApplicantUserId != applicantUserId)
             return ServiceResult.Fail("Unauthorized access to this application.");
@@ -318,7 +351,14 @@ public class ApplicationService : IApplicationService
             Comment = string.IsNullOrWhiteSpace(reason) ? "Application withdrawn by applicant." : $"Withdrawn: {reason}"
         });
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult.Conflict("The application was modified by another user. Please reload and try again.");
+        }
         return ServiceResult.Ok();
     }
 
@@ -426,7 +466,8 @@ public class ApplicationService : IApplicationService
         int applicationId,
         string managerUserId,
         ReviewOutcome outcome,
-        string? comment)
+        string? comment,
+        byte[]? rowVersion = null)
     {
         var app = await _context.RentalApplications
             .Include(a => a.Unit)
@@ -437,6 +478,8 @@ public class ApplicationService : IApplicationService
 
         if (app == null)
             return ServiceResult<RentalApplication>.Fail("Application not found.");
+
+        ApplyRowVersion(app, rowVersion);
 
         if (app.Status != ApplicationStatus.Submitted && app.Status != ApplicationStatus.UnderReview)
             return ServiceResult<RentalApplication>.Fail($"Only submitted or under review applications can be reviewed (current status: {app.Status}).");
@@ -505,12 +548,19 @@ public class ApplicationService : IApplicationService
         app.ClaimedByUserId = null;
         app.ClaimedAt = null;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult<RentalApplication>.Conflict("The application was modified by another user. Please reload and try again.");
+        }
         return ServiceResult<RentalApplication>.Ok(app);
     }
 
     // --- Bonus: Review Queue ---
-    public async Task<ServiceResult> ClaimApplicationAsync(int applicationId, string managerUserId)
+    public async Task<ServiceResult> ClaimApplicationAsync(int applicationId, string managerUserId, byte[]? rowVersion = null)
     {
         var app = await _context.RentalApplications.FindAsync(applicationId);
         if (app == null)
@@ -518,6 +568,8 @@ public class ApplicationService : IApplicationService
 
         if (app.Status != ApplicationStatus.Submitted)
             return ServiceResult.Fail($"Only submitted applications can be claimed into the review queue (current: {app.Status}).");
+
+        ApplyRowVersion(app, rowVersion);
 
         app.Status = ApplicationStatus.UnderReview;
         app.ClaimedByUserId = managerUserId;
@@ -532,11 +584,18 @@ public class ApplicationService : IApplicationService
             Comment = "Claimed application for review."
         });
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult.Conflict("The application was modified by another user. Please reload and try again.");
+        }
         return ServiceResult.Ok();
     }
 
-    public async Task<ServiceResult> ReleaseApplicationAsync(int applicationId, string managerUserId)
+    public async Task<ServiceResult> ReleaseApplicationAsync(int applicationId, string managerUserId, byte[]? rowVersion = null)
     {
         var app = await _context.RentalApplications.FindAsync(applicationId);
         if (app == null)
@@ -558,7 +617,14 @@ public class ApplicationService : IApplicationService
             Comment = "Released application back to review queue."
         });
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult.Conflict("The application was modified by another user. Please reload and try again.");
+        }
         return ServiceResult.Ok();
     }
 
@@ -599,5 +665,13 @@ public class ApplicationService : IApplicationService
         _context.PropertyManagerNotes.Remove(note);
         await _context.SaveChangesAsync();
         return ServiceResult.Ok();
+    }
+
+    private void ApplyRowVersion(RentalApplication app, byte[]? rowVersion)
+    {
+        if (rowVersion != null)
+        {
+            _context.Entry(app).Property(a => a.RowVersion).OriginalValue = rowVersion;
+        }
     }
 }

@@ -42,6 +42,9 @@ public class UnitFormViewModel
 
     public string PropertyName { get; set; } = string.Empty;
 
+    public string? RowVersionString { get; set; }
+    
+
     [Required(ErrorMessage = "Unit number is required.")]
     [StringLength(30, ErrorMessage = "Unit number cannot exceed 30 characters.")]
     [Display(Name = "Unit Number")]

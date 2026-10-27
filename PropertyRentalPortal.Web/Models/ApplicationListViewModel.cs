@@ -20,6 +20,9 @@ public class ApplicationListItemViewModel
     public bool CanEdit { get; set; }
     public bool CanWithdraw { get; set; }
     public bool CanReview { get; set; }
+
+    public string? RowVersionString { get; set; }
+    
 }
 
 public class ApplicationListFilterViewModel

@@ -12,6 +12,8 @@ public class ReviewApplicationViewModel : IValidatableObject
     public string UnitDisplay { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
 
+    public string? RowVersionString { get; set; }
+    
     [Required(ErrorMessage = "Please select a review outcome.")]
     [Display(Name = "Review Outcome")]
     public ReviewOutcome Outcome { get; set; } = ReviewOutcome.Approve;

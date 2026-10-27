@@ -13,6 +13,8 @@ namespace PropertyRentalPortal.Web.Controllers;
 [Authorize]
 public class ApplicationsController : Controller
 {
+
+    public string? RowVersionString { get; set; }
     private readonly IApplicationService _applicationService;
     private readonly IUnitService _unitService;
 
@@ -144,6 +146,8 @@ public class ApplicationsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ProcessStep(ApplicationWizardViewModel model)
     {
+        byte[]? rowVersion = !string.IsNullOrEmpty(model.RowVersionString) ? Convert.FromBase64String(model.RowVersionString) : null;
+
         var app = await _applicationService.GetApplicationByIdAsync(model.ApplicationId, CurrentUserId, IsPropertyManager);
         if (app == null)
         {
@@ -181,13 +185,34 @@ public class ApplicationsController : Controller
                     return View("Wizard", reRenderModel);
                 }
 
-                var saveRes = await _applicationService.SaveApplicantInfoAsync(app.Id, CurrentUserId, model.ApplicantInfo);
+                var saveRes = await _applicationService.SaveApplicantInfoAsync(app.Id, CurrentUserId, model.ApplicantInfo, rowVersion);
                 if (!saveRes.Success)
                 {
                     ModelState.AddModelError(string.Empty, saveRes.ErrorMessage ?? "Unable to save applicant information.");
-                    var reRenderModel = BuildWizardViewModel(app, sectionOverride: 1);
-                    reRenderModel.ApplicantInfo = model.ApplicantInfo;
-                    return View("Wizard", reRenderModel);
+
+                    if (saveRes.IsConcurrencyConflict)
+                    {
+                        // Reload the application to obtain the latest saved state
+                        var latestApp = await _applicationService.GetApplicationByIdAsync(
+                            app.Id,
+                            CurrentUserId,
+                            IsPropertyManager);
+
+                        if (latestApp == null)
+                        {
+                            return NotFound();
+                        }
+
+                        //Rebuild Section 1 from thef latest application data.
+                        //Do not replace ApplicantInfo with the stale posted values.
+                        var reRenderModel = BuildWizardViewModel(latestApp, sectionOverride: 1);
+                        return View("Wizard", reRenderModel);
+                    }
+
+                    // For non-concurrency failures, preserve the applicant's input
+                    var errorModel = BuildWizardViewModel(app
+                    , sectionOverride: 1);
+                    return View("Wizard", errorModel);
                 }
 
                 TempData["SuccessMessage"] = "Section 1 saved successfully. Please enter your Residence History.";
@@ -196,7 +221,7 @@ public class ApplicationsController : Controller
             else if (model.CurrentSection == 2)
             {
                 // Validate Section 2 (Residence History): verify at least 1 residence added
-                var valRes = await _applicationService.ValidateResidenceHistorySectionAsync(app.Id, CurrentUserId);
+                var valRes = await _applicationService.ValidateResidenceHistorySectionAsync(app.Id, CurrentUserId, rowVersion);
                 if (!valRes.Success)
                 {
                     ModelState.AddModelError(string.Empty, valRes.ErrorMessage ?? "Please add at least one prior residence.");
@@ -212,10 +237,28 @@ public class ApplicationsController : Controller
         // ACTION: SUBMIT (Available from Summary only once both sections have been saved)
         if (model.ActionClicked == "Submit")
         {
-            var submitRes = await _applicationService.SubmitApplicationAsync(app.Id, CurrentUserId);
+            var submitRes = await _applicationService.SubmitApplicationAsync(app.Id, CurrentUserId, rowVersion);
             if (!submitRes.Success)
             {
                 ModelState.AddModelError(string.Empty, submitRes.ErrorMessage ?? "Submission failed.");
+
+                var appToRender = app;
+
+                if(submitRes.IsConcurrencyConflict)
+                {
+                    // Reload the application to obtain the latest saved state
+                    var latestApp = await _applicationService.GetApplicationByIdAsync(
+                        app.Id,
+                        CurrentUserId,
+                        IsPropertyManager);
+
+                    if (latestApp == null)
+                    {
+                        return NotFound();
+                    }
+
+                    appToRender = latestApp;
+                }
                 var reRenderModel = BuildWizardViewModel(app, sectionOverride: 3);
                 return View("Wizard", reRenderModel);
             }
@@ -301,6 +344,7 @@ public class ApplicationsController : Controller
 
     private ApplicationWizardViewModel BuildWizardViewModel(RentalApplication app, int? sectionOverride = null)
     {
+        RowVersionString = app.RowVersion != null ? Convert.ToBase64String(app.RowVersion) : null;
         var isApplicant = app.ApplicantUserId == CurrentUserId;
 
         // Server-side read-only rule:

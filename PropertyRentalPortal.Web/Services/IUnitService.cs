@@ -15,7 +15,7 @@ public interface IUnitService
     Task<Unit?> GetUnitByIdAsync(int id);
     Task<List<UnitType>> GetUnitTypesForSelectionAsync(int? currentUnitTypeId = null);
     Task<ServiceResult<Unit>> CreateUnitAsync(Unit unit);
-    Task<ServiceResult<Unit>> UpdateUnitAsync(Unit unit);
+    Task<ServiceResult<Unit>> UpdateUnitAsync(Unit unit, byte[]? rowVersion = null);
     Task<ServiceResult> DeleteUnitAsync(int unitId);
 
     Task<bool> IsUnitAvailableAsync(int unitId, DateTime? asOfDate = null);

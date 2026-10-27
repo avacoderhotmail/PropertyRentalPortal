@@ -78,8 +78,9 @@ public class ApplicationServiceTests
             CurrentZipCode = "60601"
         };
 
+        byte[] rowVersion = new byte[] { 0x01 }; // Simulated RowVersion for concurrency check
         // Act: Requirement 4b.i "Continue validates the current section, persists it only when it is valid, and shows the next section"
-        var saveRes = await service.SaveApplicantInfoAsync(appId, ApplicantId, input);
+        var saveRes = await service.SaveApplicantInfoAsync(appId, ApplicantId, input, rowVersion);
 
         // Assert
         Assert.True(saveRes.Success);
@@ -99,8 +100,9 @@ public class ApplicationServiceTests
         var startRes = await service.StartApplicationAsync(unit.Id, ApplicantId, "John Doe", "john@example.com");
         var appId = startRes.Data!.Id;
 
+        byte[] rowVersion = new byte[] { 0x01 }; // Simulated RowVersion for concurrency check
         // Act (No residences added yet)
-        var result = await service.ValidateResidenceHistorySectionAsync(appId, ApplicantId);
+        var result = await service.ValidateResidenceHistorySectionAsync(appId, ApplicantId, rowVersion);
 
         // Assert
         Assert.False(result.Success);
@@ -132,8 +134,9 @@ public class ApplicationServiceTests
             MoveOutDate = DateTime.UtcNow.AddMonths(-2)
         });
 
+        byte[] rowVersion = new byte[] { 0x01 }; // Simulated RowVersion for concurrency check
         // Act
-        var result = await service.ValidateResidenceHistorySectionAsync(appId, ApplicantId);
+        var result = await service.ValidateResidenceHistorySectionAsync(appId, ApplicantId, rowVersion);
 
         // Assert
         Assert.True(result.Success);

@@ -155,7 +155,7 @@ public class UnitService : IUnitService
         return ServiceResult<Unit>.Ok(unit);
     }
 
-    public async Task<ServiceResult<Unit>> UpdateUnitAsync(Unit unit)
+    public async Task<ServiceResult<Unit>> UpdateUnitAsync(Unit unit, byte[]? rowVersion = null)
     {
         var existing = await _context.Units.FindAsync(unit.Id);
         if (existing == null)
@@ -180,6 +180,8 @@ public class UnitService : IUnitService
                 return ServiceResult<Unit>.Fail($"Unit number '{unit.UnitNumber}' already exists for this property.");
         }
 
+        if (unit.RowVersion != null) _context.Entry(existing).Property(u => u.RowVersion).OriginalValue = unit.RowVersion;
+
         existing.PropertyId = unit.PropertyId;
         existing.UnitNumber = unit.UnitNumber;
         existing.Bedrooms = unit.Bedrooms;
@@ -187,7 +189,14 @@ public class UnitService : IUnitService
         existing.MonthlyRent = unit.MonthlyRent;
         existing.UnitTypeId = unit.UnitTypeId;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult<Unit>.Conflict("The unit was modified by another user. Please reload and try again.");
+        }
         return ServiceResult<Unit>.Ok(existing);
     }
 

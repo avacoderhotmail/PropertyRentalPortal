@@ -263,4 +263,6 @@ public class ApplicationConcurrencyTests
         // Assert: EF Core change tracker identifies that the original value does not match current store value
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => context2.SaveChangesAsync());
     }
+
+    
 }

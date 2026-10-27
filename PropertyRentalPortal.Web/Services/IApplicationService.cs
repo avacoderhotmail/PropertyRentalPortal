@@ -26,10 +26,10 @@ public interface IApplicationService
 
     // Lifecycle & Wizard Actions
     Task<ServiceResult<RentalApplication>> StartApplicationAsync(int unitId, string applicantUserId, string applicantName, string applicantEmail);
-    Task<ServiceResult<RentalApplication>> SaveApplicantInfoAsync(int applicationId, string applicantUserId, ApplicantInfoInputModel model);
-    Task<ServiceResult<RentalApplication>> ValidateResidenceHistorySectionAsync(int applicationId, string applicantUserId);
-    Task<ServiceResult<RentalApplication>> SubmitApplicationAsync(int applicationId, string applicantUserId);
-    Task<ServiceResult> WithdrawApplicationAsync(int applicationId, string applicantUserId, string? reason);
+    Task<ServiceResult<RentalApplication>> SaveApplicantInfoAsync(int applicationId, string applicantUserId, ApplicantInfoInputModel model, byte[]? rowVersion = null);
+    Task<ServiceResult<RentalApplication>> ValidateResidenceHistorySectionAsync(int applicationId, string applicantUserId, byte[]? rowVersion = null);
+    Task<ServiceResult<RentalApplication>> SubmitApplicationAsync(int applicationId, string applicantUserId, byte[]? rowVersion = null);
+    Task<ServiceResult> WithdrawApplicationAsync(int applicationId, string applicantUserId, string? reason, byte[]? rowVersion = null);
 
     // Residence History Modal CRUD
     Task<ResidenceHistory?> GetResidenceByIdAsync(int residenceId);
@@ -42,11 +42,12 @@ public interface IApplicationService
         int applicationId,
         string managerUserId,
         ReviewOutcome outcome,
-        string? comment);
+        string? comment,
+        byte[]? rowVersion = null);
 
     // Bonus: Review Queue
-    Task<ServiceResult> ClaimApplicationAsync(int applicationId, string managerUserId);
-    Task<ServiceResult> ReleaseApplicationAsync(int applicationId, string managerUserId);
+    Task<ServiceResult> ClaimApplicationAsync(int applicationId, string managerUserId, byte[]? rowVersion = null);
+    Task<ServiceResult> ReleaseApplicationAsync(int applicationId, string managerUserId, byte[]? rowVersion = null);
 
     // Bonus: Property Manager Notes
     Task<List<PropertyManagerNote>> GetNotesAsync(int applicationId);
