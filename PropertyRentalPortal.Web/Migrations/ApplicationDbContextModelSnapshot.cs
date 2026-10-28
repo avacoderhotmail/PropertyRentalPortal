@@ -189,7 +189,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasIndex("RentalApplicationId");
 
-                    b.ToTable("ApplicationStatusHistories");
+                    b.ToTable("ApplicationStatusHistories", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.ApplicationUser", b =>
@@ -311,7 +311,7 @@ namespace PropertyRentalPortal.Web.Migrations
                         .HasDatabaseName("IX_Leases_UnitId_Active")
                         .HasFilter("[IsActive] = 1");
 
-                    b.ToTable("Leases");
+                    b.ToTable("Leases", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.Property", b =>
@@ -356,7 +356,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Properties");
+                    b.ToTable("Properties", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.PropertyManagerNote", b =>
@@ -391,7 +391,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasIndex("RentalApplicationId");
 
-                    b.ToTable("PropertyManagerNotes");
+                    b.ToTable("PropertyManagerNotes", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.RentalApplication", b =>
@@ -484,7 +484,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasIndex("UnitId");
 
-                    b.ToTable("RentalApplications");
+                    b.ToTable("RentalApplications", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.ResidenceHistory", b =>
@@ -541,7 +541,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasIndex("RentalApplicationId");
 
-                    b.ToTable("ResidenceHistories");
+                    b.ToTable("ResidenceHistories", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.Unit", b =>
@@ -585,7 +585,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasIndex("UnitTypeId");
 
-                    b.ToTable("Units");
+                    b.ToTable("Units", (string)null);
                 });
 
             modelBuilder.Entity("PropertyRentalPortal.Web.Data.Entities.UnitType", b =>
@@ -606,7 +606,7 @@ namespace PropertyRentalPortal.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("UnitTypes");
+                    b.ToTable("UnitTypes", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

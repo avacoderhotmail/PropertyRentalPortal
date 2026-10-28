@@ -91,8 +91,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(a => a.ClaimedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            entity.Property(a => a.RowVersion)
-                .IsRowVersion();
+            entity.Property(a => a.RowVersion).IsRowVersion();
+
+
         });
 
         // ResidenceHistory relationships

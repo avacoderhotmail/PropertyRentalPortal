@@ -1,22 +1,42 @@
 using Microsoft.EntityFrameworkCore;
 using PropertyRentalPortal.Web.Data;
 using PropertyRentalPortal.Web.Data.Entities;
+using Microsoft.Data.Sqlite;
+
 
 namespace PropertyRentalPortal.Tests;
 
 public static class TestDbContextFactory
 {
+    private static readonly Dictionary<string, SqliteConnection> _connections = new();
+
     public static ApplicationDbContext CreateInMemoryDbContext(string dbName)
     {
+        // Reuse or create a persistent connection for this specific test name
+        if (!_connections.TryGetValue(dbName, out var connection))
+        {
+            connection = new SqliteConnection($"DataSource={dbName};Mode=Memory;Cache=Shared");
+            connection.Open();
+
+            // Enable foreign keys once when the connection is first opened
+            using var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA foreign_keys = OFF;";
+            command.ExecuteNonQuery();
+
+            _connections[dbName] = connection;
+        }
+
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: dbName)
+            .UseSqlite(connection)
             .Options;
 
-        var context = new ApplicationDbContext(options);
+        var context = new SqliteTestApplicationDbContext(options);
+
+        // EnsureCreated() only needs to run once per database name
         context.Database.EnsureCreated();
+
         return context;
     }
-
     public static async Task<(Property property, UnitType activeType, UnitType inactiveType, Unit unit)> SeedBasicPropertyDataAsync(ApplicationDbContext context)
     {
         // Seed default test users so foreign keys and navigation includes resolve cleanly

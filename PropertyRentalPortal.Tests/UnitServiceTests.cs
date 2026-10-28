@@ -182,4 +182,54 @@ public class UnitServiceTests
         // Assert
         Assert.True(isAvailable);
     }
+
+    [Fact]
+    public async Task UpdateUnit_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(UpdateUnit_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        unit.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var unitId = unit.Id;
+
+        // Context 1 simulates concurrent update by Manager 1 (updating rent to $1900, RowVersion to 0x02)
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var unitFrom1 = await context1.Units.FindAsync(unitId);
+        Assert.NotNull(unitFrom1);
+        unitFrom1.MonthlyRent = 1900m;
+        unitFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Context 2 (Manager 2) attempts to update the unit with stale RowVersion 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new UnitService(context2);
+        var unitFrom2 = new Unit
+        {
+            Id = unitId,
+            PropertyId = unit.PropertyId,
+            UnitNumber = unit.UnitNumber,
+            Bedrooms = unit.Bedrooms,
+            Bathrooms = unit.Bathrooms,
+            MonthlyRent = 2000m, // Manager 2 wanted $2000
+            UnitTypeId = unit.UnitTypeId,
+            RowVersion = new byte[] { 0x01 } // Stale token!
+        };
+
+        // Act
+        var result = await service2.UpdateUnitAsync(unitFrom2, rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify database retained Manager 1's $1900 rent, not Manager 2's $2000
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalUnit = await verifyContext.Units.FindAsync(unitId);
+        Assert.NotNull(finalUnit);
+        Assert.Equal(1900m, finalUnit.MonthlyRent);
+    }
 }

@@ -554,6 +554,18 @@ public class ApplicationService : IApplicationService
         }
         catch (DbUpdateConcurrencyException)
         {
+            if (app.Lease != null)
+            {
+                _context.Leases.Remove(app.Lease);
+                app.Lease = null;
+            }
+            // Because the save failed, the lease was never written to the database.
+            // We just need to detach or stop tracking the failed entities.
+
+            foreach (var entry in _context.ChangeTracker.Entries())
+            {
+                entry.State = EntityState.Detached;
+            }
             return ServiceResult<RentalApplication>.Conflict("The application was modified by another user. Please reload and try again.");
         }
         return ServiceResult<RentalApplication>.Ok(app);
@@ -603,6 +615,8 @@ public class ApplicationService : IApplicationService
 
         if (app.Status != ApplicationStatus.UnderReview)
             return ServiceResult.Fail("Application is not under review.");
+
+        ApplyRowVersion(app, rowVersion);
 
         app.Status = ApplicationStatus.Submitted;
         app.ClaimedByUserId = null;

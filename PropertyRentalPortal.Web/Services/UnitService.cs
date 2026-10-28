@@ -180,7 +180,8 @@ public class UnitService : IUnitService
                 return ServiceResult<Unit>.Fail($"Unit number '{unit.UnitNumber}' already exists for this property.");
         }
 
-        if (unit.RowVersion != null) _context.Entry(existing).Property(u => u.RowVersion).OriginalValue = unit.RowVersion;
+        var token = rowVersion ?? unit.RowVersion;
+        if (token != null) _context.Entry(existing).Property(u => u.RowVersion).OriginalValue = token;
 
         existing.PropertyId = unit.PropertyId;
         existing.UnitNumber = unit.UnitNumber;

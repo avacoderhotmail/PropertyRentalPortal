@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PropertyRentalPortal.Web.Data.Entities;
 using PropertyRentalPortal.Web.Data.Enums;
+using PropertyRentalPortal.Web.Models;
 using PropertyRentalPortal.Web.Services;
 
 namespace PropertyRentalPortal.Tests;
@@ -264,5 +265,322 @@ public class ApplicationConcurrencyTests
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => context2.SaveChangesAsync());
     }
 
-    
+    [Fact]
+    public async Task SaveApplicantInfo_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(SaveApplicantInfo_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 simulates concurrent modification that updates RowVersion to 0x02
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.ApplicantPhone = "555-999-8888";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Context 2 tries to save applicant info with the stale RowVersion 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var input = new ApplicantInfoInputModel
+        {
+            ApplicantFullName = "Alice Conflict Updated",
+            ApplicantEmail = "alice@test.com",
+            ApplicantPhone = "555-111-2222",
+            CurrentAddress = "456 Stale St",
+            CurrentCity = "Chicago",
+            CurrentState = "IL",
+            CurrentZipCode = "60601"
+        };
+
+        var result = await service2.SaveApplicantInfoAsync(appId, Applicant1Id, input, rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify database retained Context 1's value, not Context 2's
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.Equal("555-999-8888", finalApp.ApplicantPhone);
+    }
+
+    [Fact]
+    public async Task ValidateResidenceHistorySection_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(ValidateResidenceHistorySection_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.RowVersion = new byte[] { 0x01 };
+
+        // Add residence history
+        setupContext.ResidenceHistories.Add(new ResidenceHistory
+        {
+            RentalApplicationId = app.Id,
+            Address = "123 Old St",
+            City = "Chicago",
+            State = "IL",
+            ZipCode = "60601",
+            LandlordName = "Bob Landlord",
+            LandlordPhone = "555-123-4567",
+            MoveInDate = DateTime.UtcNow.AddYears(-2)
+        });
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 simulates concurrent modification that updates RowVersion to 0x02
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.ApplicantFullName = "Alice Concurrent Modification";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Context 2 tries to validate section with stale RowVersion 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var result = await service2.ValidateResidenceHistorySectionAsync(appId, Applicant1Id, rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify section was not advanced to 3
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.False(finalApp.ResidenceHistorySaved);
+        Assert.NotEqual(3, finalApp.CurrentSection);
+    }
+
+    [Fact]
+    public async Task SubmitApplication_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(SubmitApplication_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.ApplicantInfoSaved = true;
+        app.ResidenceHistorySaved = true;
+        app.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 simulates concurrent modification
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.ApplicantPhone = "555-000-1111";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Context 2 attempts to submit with stale token 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var result = await service2.SubmitApplicationAsync(appId, Applicant1Id, rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify status remains Draft, not Submitted
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.Equal(ApplicationStatus.Draft, finalApp.Status);
+        Assert.Null(finalApp.SubmittedAt);
+    }
+
+    [Fact]
+    public async Task ReviewApplication_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(ReviewApplication_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.ApplicantInfoSaved = true;
+        app.ResidenceHistorySaved = true;
+        app.Status = ApplicationStatus.Submitted;
+        app.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 modifies the application concurrently
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.CurrentAddress = "999 Concurrent Blvd";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Manager attempts to approve with stale token 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var result = await service2.ReviewApplicationAsync(appId, Manager1Id, ReviewOutcome.Approve, "Approved", rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify no lease was issued and application is not Approved
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var leases = await verifyContext.Leases.Where(l => l.UnitId == unit.Id).ToListAsync();
+        Assert.Empty(leases);
+
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.Equal(ApplicationStatus.Submitted, finalApp.Status);
+    }
+
+    [Fact]
+    public async Task ClaimApplication_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(ClaimApplication_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.Status = ApplicationStatus.Submitted;
+        app.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 modifies the application concurrently
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.ApplicantPhone = "555-444-3333";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Manager attempts to claim with stale token 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var result = await service2.ClaimApplicationAsync(appId, Manager1Id, rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify application was not claimed
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.Equal(ApplicationStatus.Submitted, finalApp.Status);
+        Assert.Null(finalApp.ClaimedByUserId);
+    }
+
+    [Fact]
+    public async Task ReleaseApplication_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(ReleaseApplication_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.Status = ApplicationStatus.UnderReview;
+        app.ClaimedByUserId = Manager1Id;
+        app.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 modifies the application concurrently
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.ApplicantPhone = "555-777-6666";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Manager attempts to release with stale token 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var result = await service2.ReleaseApplicationAsync(appId, Manager1Id, rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify application remains UnderReview and claimed
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.Equal(ApplicationStatus.UnderReview, finalApp.Status);
+        Assert.Equal(Manager1Id, finalApp.ClaimedByUserId);
+    }
+
+    [Fact]
+    public async Task WithdrawApplication_WithStaleRowVersion_ReturnsConcurrencyConflict()
+    {
+        // Arrange
+        var dbName = nameof(WithdrawApplication_WithStaleRowVersion_ReturnsConcurrencyConflict);
+        using var setupContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var (_, _, _, unit) = await TestDbContextFactory.SeedBasicPropertyDataAsync(setupContext);
+
+        var setupService = new ApplicationService(setupContext);
+        var startRes = await setupService.StartApplicationAsync(unit.Id, Applicant1Id, "Alice Tenant", "alice@test.com");
+        var app = startRes.Data!;
+        app.RowVersion = new byte[] { 0x01 };
+        await setupContext.SaveChangesAsync();
+        var appId = app.Id;
+
+        // Context 1 modifies the application concurrently
+        using var context1 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var appFrom1 = await context1.RentalApplications.FindAsync(appId);
+        Assert.NotNull(appFrom1);
+        appFrom1.CurrentAddress = "999 Some Other Address";
+        appFrom1.RowVersion = new byte[] { 0x02 };
+        await context1.SaveChangesAsync();
+
+        // Act: Applicant attempts to withdraw with stale token 0x01
+        using var context2 = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var service2 = new ApplicationService(context2);
+        var result = await service2.WithdrawApplicationAsync(appId, Applicant1Id, "Changed my mind", rowVersion: new byte[] { 0x01 });
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.True(result.IsConcurrencyConflict);
+        Assert.Contains("modified by another user", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+
+        // Verify application was not withdrawn
+        using var verifyContext = TestDbContextFactory.CreateInMemoryDbContext(dbName);
+        var finalApp = await verifyContext.RentalApplications.FindAsync(appId);
+        Assert.NotNull(finalApp);
+        Assert.NotEqual(ApplicationStatus.Withdrawn, finalApp.Status);
+    }
 }
