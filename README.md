@@ -82,7 +82,7 @@ The solution is configured for .NET 10 LTS with `global.json` pinning and includ
   - Reusable Razor Partial Views for modal forms and wizard sections.
   - Razor View Components (`StatusBadge`, `ApplicationTimeline`, `PropertyManagerNotes`, `ReusableGrid`).
   - Idempotent database seeder using Bogus for realistic tenant data.
-- `PropertyRentalPortal.Tests`: Comprehensive xUnit test suite containing 21 unit tests validating all business logic, lease conflicts, lookup enforcement, and review outcomes.
+- `PropertyRentalPortal.Tests`: xUnit test suite containing 34 tests for application workflows, unit rules, lease conflicts, and concurrent updates.
 
 ### Design Highlights
 
@@ -162,17 +162,37 @@ Execute the xUnit test suite from the root folder:
 dotnet test
 ```
 
-All 21 unit tests validate:
+The 34 tests cover the following cases:
 
-- UnitType active/inactive server enforcement.
-- Lease term availability covering current dates.
-- Double-lease prevention during both submission and approval.
-- Single-page wizard validation step requirements.
-- Review outcome comment mandates for Return and Deny.
-- Review queue claim and release transitions.
+### Application workflow (17 tests)
+
+- Starting an application fails for a unit with an active lease and creates a draft for an available unit.
+- Saving valid applicant details persists the values and advances the wizard to residence history.
+- Residence history validation rejects an empty history and advances to the summary when at least one residence exists.
+- Submission rejects incomplete sections and units leased after the draft began; valid applications transition to Submitted.
+- Approval rejects an already leased unit; otherwise it approves the application and issues a 12-month lease.
+- Return and Deny require comments; a valid Return moves the application to Returned and makes it editable.
+- Withdrawal is rejected for terminal applications.
+- Claiming and releasing an application moves it into and out of the manager review queue.
+
+### Unit service (7 tests)
+
+- Unit creation accepts an active unit type and rejects an inactive one.
+- Unit updates reject changing to an inactive type but allow retaining the unit's existing inactive type.
+- Availability is false when a lease covers today and true when the lease has expired.
+- Updating a unit with a stale row version returns a concurrency conflict.
+
+### Concurrency (10 tests)
+
+- When two managers approve the same application, only the first succeeds and only one lease is issued.
+- When managers concurrently approve and deny one application, only the first outcome is applied.
+- Concurrent approvals for different applications on the same unit cannot create a double lease.
+- Concurrent claims allow only one manager to claim the application.
+- A stale row version on review raises an EF Core concurrency exception.
+- Stale row versions on saving applicant details, validating residence history, submitting, reviewing, claiming, releasing, and withdrawing return concurrency conflicts without applying the attempted update.
 
 ## Bonus Capabilities
 
-- **Bonus 1 - Reusable Grid & OpenAPI**: Database-level paging, sorting, and filtering exposed via `GET /api/applicationsapi` and documented using OpenAPI with Scalar UI at `/scalar/v1`.
+- **Bonus 1 - Reusable Grid & OpenAPI**: Database-level paging, sorting, and filtering exposed via `GET /api/applicationsapi` and documented using OpenAPI with Scalar UI at `/scalar/v1`. \*\*The ApplicationsApiController was created and documented by OpenAPI. It can be excercised using OpenAPI but has not been wired into the application.
 - **Bonus 2 - Review Queue**: Property managers can claim submitted applications into `UnderReview` status and release them back to the general queue.
 - **Bonus 3 - Property Manager Notes**: Staff-only notes stored separately and never rendered or returned to applicants.
